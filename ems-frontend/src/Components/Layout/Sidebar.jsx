@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import PropTypes from 'prop-types'
 import { 
   Box,
   List,
@@ -22,7 +23,7 @@ import EMSLogo  from "./EMSLogo";
 
 const navItems = [
   { to: "/dashboard", icon: Home, label: "Home" },
-  { to: "/add-employee", icon: PersonAdd, label: "Add Employee" },
+  { to: "/add-employee", icon: PersonAdd, label: "Team Management" },
   { to: "/payroll", icon: CurrencyRupeeIcon, label: "Payroll" },
   { to: "/leave", icon: CalendarMonth, label: "Apply Leave" },
   { to: "/attendance", icon: FactCheck, label: "Attendance" },

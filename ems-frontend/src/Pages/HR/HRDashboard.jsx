@@ -110,7 +110,7 @@ const HRDashboard = () => {
 
       {/* ------------------ OVERVIEW TITLE ------------------ */}
       <Typography variant="h4" align="center" fontWeight={700} mb={4}>
-        Overview Dashboard
+        HR Dashboard
       </Typography>
 
       {/* ------------------ STATS CARDS ------------------ */}

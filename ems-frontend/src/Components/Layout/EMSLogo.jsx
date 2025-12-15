@@ -1,5 +1,5 @@
 import React from "react";
-import logo from "../image.png";
+import logo from "../Assets/image.png";
 
 export default function EMSLogo({ size = "md" }) {
   const sizes = {

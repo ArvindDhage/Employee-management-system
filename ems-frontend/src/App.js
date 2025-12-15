@@ -1,4 +1,4 @@
-import './App.css';
+/*import './App.css';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Login from './Components/LoginEMS/login';
@@ -41,6 +41,29 @@ function App() {
       <CssBaseline />
       <Login />
     </ThemeProvider>
+  );
+}
+
+export default App;
+
+*/
+
+// src/App.js
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import ManagerDashboard from "./Pages/Manager/ManagerDashboard";
+import CreateTeam from "./Pages/Manager/CreateTeam";
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Navigate to="/manager/dashboard" replace />} />
+        <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+        <Route path="/manager/team/create" element={<CreateTeam />} />
+        {/* Add other routes as needed */}
+      </Routes>
+    </Router>
   );
 }
 

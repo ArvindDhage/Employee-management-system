@@ -1,5 +1,5 @@
-import Sidebar from "../Layout/Sidebar";
-import Navbar from "../Layout/Navbar";
+import Sidebar from "./Sidebar";
+import Navbar from "./Navbar";
 
 const SIDEBAR_WIDTH = 220;
 
