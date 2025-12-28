@@ -46,8 +46,8 @@ function App() {
 
 export default App;
 
-*/
 
+*/
 // src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
@@ -61,7 +61,7 @@ function App() {
         <Route path="/" element={<Navigate to="/manager/dashboard" replace />} />
         <Route path="/manager/dashboard" element={<ManagerDashboard />} />
         <Route path="/manager/team/create" element={<CreateTeam />} />
-        {/* Add other routes as needed */}
+        
       </Routes>
     </Router>
   );
