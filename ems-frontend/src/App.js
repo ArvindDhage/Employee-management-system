@@ -53,6 +53,9 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import ManagerDashboard from "./Pages/Manager/ManagerDashboard";
 import CreateTeam from "./Pages/Manager/CreateTeam";
+import Teams from "./Pages/Manager/Teams";
+import TeamLeave  from'./Pages/Manager/TeamLeaves';
+import Tasks from './Pages/Manager/Tasks';
 
 function App() {
   return (
@@ -61,7 +64,9 @@ function App() {
         <Route path="/" element={<Navigate to="/manager/dashboard" replace />} />
         <Route path="/manager/dashboard" element={<ManagerDashboard />} />
         <Route path="/manager/team/create" element={<CreateTeam />} />
-        
+        <Route path="/manager/teams" element={<Teams />} />
+        <Route path="/manager/team/leaves" element={<TeamLeave />} />
+        <Route path='manager/tasks' element={<Tasks/>} />
       </Routes>
     </Router>
   );

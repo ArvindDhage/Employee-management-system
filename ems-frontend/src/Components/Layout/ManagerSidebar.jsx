@@ -16,9 +16,9 @@ import {
 const menuItems = [
   { label: 'Dashboard', path: '/manager/dashboard', icon: <DashboardIcon /> },
   { label: 'Create Team', path: '/manager/team/create', icon: <GroupAddIcon /> },
-  { label: 'Team Members', path: '/manager/team/members', icon: <PeopleIcon /> },
-  { label: 'Team Attendance', path: '/manager/attendance', icon: <AttendanceIcon /> },
-  { label: 'Team Leaves', path: '/manager/leaves', icon: <CalendarIcon /> }
+  { label: 'Teams', path: '/manager/teams', icon: <PeopleIcon /> },
+  { label: 'Team Leaves', path: '/manager/team/leaves', icon: <CalendarIcon /> },
+  { label: 'Tasks', path: '/manager/tasks', icon: <CalendarIcon /> }
 ];
 
 const ManagerSidebar = () => {
