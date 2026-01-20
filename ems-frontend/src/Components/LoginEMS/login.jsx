@@ -115,19 +115,19 @@ const Login = () => {
         username: formData.username,
         password: formData.password
       },
-      { withCredentials: true } // required if backend uses cookies
+      { withCredentials: true } 
     );
 
     const user = response.data;
     console.log('Login success:', user);
 
-    // Check if backend returned roles
+    
     if (!user.roles) {
       setError('Login failed: no roles returned from server');
       return;
     }
 
-    // Navigate based on role (use 'roles' field from backend)
+    
     switch (user.roles.toLowerCase()) {
       case 'admin':
         navigate('/admin/dashboard');
@@ -142,7 +142,6 @@ const Login = () => {
         setError('Unknown role');
     }
 
-    // Optional: store token if needed
     localStorage.setItem('token', user.token);
     localStorage.setItem('username', user.username);
 
