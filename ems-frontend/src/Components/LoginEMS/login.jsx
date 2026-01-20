@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { 
   Box, 
   TextField, 
@@ -87,10 +89,12 @@ const LoginCard = styled(Paper)(({ theme }) => ({
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    userId: '',
+    username: '',
     password: '',
     rememberMe: false
   });
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -100,11 +104,56 @@ const Login = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Handle login logic here
-    console.log('Login submitted:', formData);
-  };
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+
+  try {
+    const response = await axios.post(
+      'http://localhost:8080/auth/login',
+      {
+        username: formData.username,
+        password: formData.password
+      },
+      { withCredentials: true } // required if backend uses cookies
+    );
+
+    const user = response.data;
+    console.log('Login success:', user);
+
+    // Check if backend returned roles
+    if (!user.roles) {
+      setError('Login failed: no roles returned from server');
+      return;
+    }
+
+    // Navigate based on role (use 'roles' field from backend)
+    switch (user.roles.toLowerCase()) {
+      case 'admin':
+        navigate('/admin/dashboard');
+        break;
+      case 'hr':
+        navigate('/hr/dashboard');
+        break;
+      case 'manager':
+        navigate('/manager/dashboard');
+        break;
+      default:
+        setError('Unknown role');
+    }
+
+    // Optional: store token if needed
+    localStorage.setItem('token', user.token);
+    localStorage.setItem('username', user.username);
+
+  } catch (err) {
+    console.error('Login error full:', err);
+    console.error('Login error response:', err.response);
+    setError(err.response?.data?.message || 'Login failed');
+  }
+};
+
+
 
   return (
     <LoginContainer>
@@ -141,9 +190,9 @@ const Login = () => {
                 fullWidth
                 variant="outlined"
                 margin="normal"
-                placeholder="User ID"
-                name="userId"
-                value={formData.userId}
+                placeholder="Username"
+                name="username"  // Fixed: must match formData key
+                value={formData.username}
                 onChange={handleChange}
                 InputProps={{
                   startAdornment: (
@@ -155,15 +204,9 @@ const Login = () => {
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    '& fieldset': {
-                      borderColor: '#e0e0e0',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: '#1976d2',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#1976d2',
-                    },
+                    '& fieldset': { borderColor: '#e0e0e0' },
+                    '&:hover fieldset': { borderColor: '#1976d2' },
+                    '&.Mui-focused fieldset': { borderColor: '#1976d2' },
                   },
                   mb: 2,
                 }}
@@ -200,15 +243,9 @@ const Login = () => {
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    '& fieldset': {
-                      borderColor: '#e0e0e0',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: '#1976d2',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#1976d2',
-                    },
+                    '& fieldset': { borderColor: '#e0e0e0' },
+                    '&:hover fieldset': { borderColor: '#1976d2' },
+                    '&.Mui-focused fieldset': { borderColor: '#1976d2' },
                   },
                   mb: 1,
                 }}
@@ -248,13 +285,13 @@ const Login = () => {
                   fontWeight: 600,
                   fontSize: '1rem',
                   boxShadow: '0 4px 14px rgba(25, 118, 210, 0.4)',
-                  '&:hover': {
-                    boxShadow: '0 6px 20px rgba(25, 118, 210, 0.5)',
-                  },
+                  '&:hover': { boxShadow: '0 6px 20px rgba(25, 118, 210, 0.5)' },
                 }}
               >
                 Sign In
               </Button>
+
+              {error && <Typography color="error" mt={2}>{error}</Typography>}
             </form>
           </LoginCard>
         </motion.div>
