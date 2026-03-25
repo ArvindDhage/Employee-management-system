@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import ManagerSidebar from '../../Components/Layout/ManagerSidebar';
 
 import {
   Box,
@@ -92,11 +91,8 @@ const Teams = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#fff' }}>
-      <ManagerSidebar />
-
-      {/* MAIN CONTENT */}
-      <Box component="main" sx={{ flexGrow: 1, p: 4 }}>
+    <>
+      <Box component="main" sx={{ p: 3 }}>
         {/* HEADER */}
         <Box
           sx={{
@@ -282,7 +278,7 @@ const Teams = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </>
   );
 };
 

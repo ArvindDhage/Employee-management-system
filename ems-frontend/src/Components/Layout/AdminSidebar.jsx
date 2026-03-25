@@ -153,14 +153,15 @@ const AdminSidebar = ({ mobileOpen, handleDrawerToggle }) => {
       component="nav"
       sx={{ 
         width: { md: drawerWidth }, 
-        flexShrink: { md: 0 } ,
-         position: 'fixed',  // Add this
-         height: '100vh',    // Add this
-         zIndex: 1200,       // Ensure it stays above other content
-         overflowY: 'auto',  // Add scroll if content is too long
-         bgcolor: 'background.paper',
-         borderRight: '1px solid',
-         borderColor: 'divider'
+        flexShrink: { md: 0 },
+        height: '100vh',
+        overflowY: 'auto',
+        bgcolor: 'background.paper',
+        borderRight: '1px solid',
+        borderColor: 'divider',
+        position: { xs: 'fixed', md: 'relative' }, 
+        zIndex: { xs: 1200, md: 0 },
+        display: { xs: mobileOpen ? 'block' : 'none', md: 'block' }
       }}
       aria-label="admin sidebar"
     >
@@ -170,9 +171,10 @@ const AdminSidebar = ({ mobileOpen, handleDrawerToggle }) => {
         open={isMobile ? mobileOpen : true}
         onClose={handleDrawerToggle}
         ModalProps={{
-          keepMounted: true, // Better open performance on mobile
+          keepMounted: true, 
         }}
         sx={{
+          display: { xs: 'block', md: 'none' }, 
           '& .MuiDrawer-paper': { 
             boxSizing: 'border-box', 
             width: drawerWidth,
@@ -183,6 +185,16 @@ const AdminSidebar = ({ mobileOpen, handleDrawerToggle }) => {
       >
         {drawer}
       </Drawer>
+      
+      {/* Desktop Sidebar */}
+      <Box 
+        sx={{ 
+          display: { xs: 'none', md: 'block' }, 
+          height: '100%'
+        }}
+      >
+        {drawer}
+      </Box>
     </Box>
   );
 };

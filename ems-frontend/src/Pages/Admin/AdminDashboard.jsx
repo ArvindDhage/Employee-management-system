@@ -155,13 +155,7 @@ const AdminDashboard = () => {
   return (
     <Box
       sx={{
-        ml: { xs: 0, md: `${drawerWidth}px` },
-        width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` },
         minHeight: '100vh',
-        pt: 3,  // top
-        pr: 3,   // right
-        pb: 3,   // bottom
-        pl: 2,   // left (reduced from 3 to 2)
         bgcolor: '#f5f7fb'
       }}
     >

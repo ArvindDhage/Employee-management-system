@@ -17,7 +17,7 @@ const menuItems = [
   { label: 'Dashboard', path: '/manager/dashboard', icon: <DashboardIcon /> },
   { label: 'Create Team', path: '/manager/team/create', icon: <GroupAddIcon /> },
   { label: 'Teams', path: '/manager/teams', icon: <PeopleIcon /> },
-  { label: 'Team Leaves', path: '/manager/team/leaves', icon: <CalendarIcon /> },
+  { label: 'Team Leaves', path: '/manager/teamleaves', icon: <CalendarIcon /> },
   { label: 'Tasks', path: '/manager/tasks', icon: <CalendarIcon /> }
 ];
 

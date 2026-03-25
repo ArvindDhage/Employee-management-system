@@ -23,7 +23,7 @@ import {
   GroupAdd as GroupAddIcon,
   ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
-import ManagerSidebar from '../../Components/Layout/ManagerSidebar';
+
 
 const departments = [
   'Engineering',
@@ -121,10 +121,7 @@ const CreateTeam = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      <ManagerSidebar />
-
-      <Box component="main" sx={{ flexGrow: 1, p: 3, bgcolor: '#f9fafb' }}>
+    <Box component="main" sx={{ p: 3 }}>
         <Paper
           sx={{
             p: 4,
@@ -561,7 +558,6 @@ const CreateTeam = () => {
               </Box>
           </Box>
         </Paper>
-      </Box>
     </Box>
   );
 };
