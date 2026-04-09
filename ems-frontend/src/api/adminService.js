@@ -1,5 +1,6 @@
 import axiosInstance from "../util/Axiosconfig";
 
+
 export const adminService = {
   // ── Dashboard ──────────────────────────────────────────────────────────────
   getStats: () => axiosInstance.get("/api/admin/stats"),

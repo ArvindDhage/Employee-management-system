@@ -1,5 +1,6 @@
 import axiosInstance from "../util/Axiosconfig";
 
+
 // ── Employee profile ───────────────────────────────────────────────────────
 export const getMyProfile = () =>
   axiosInstance.get("/employees/me");
