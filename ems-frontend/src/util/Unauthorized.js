@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { Box, Typography, Button } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
-
 const Unauthorized = () => {
   const navigate = useNavigate();
 
