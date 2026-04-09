@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import { 
   Box, 
   TextField, 
@@ -17,7 +17,6 @@ import { styled } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 import logo from '../Assets/image.png';
 
-// Watermark component
 const Watermark = ({ position }) => (
   <Box 
     component="img"
@@ -89,74 +88,79 @@ const LoginCard = styled(Paper)(({ theme }) => ({
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    rememberMe: false
+    username: "",
+    password: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  const redirectByRole = useCallback((role) => {
+    const routes = {
+      ADMIN:    "/admin/dashboard",
+      MANAGER:  "/manager/dashboard",
+      HR:       "/hr/dashboard",
+      EMPLOYEE: "/employee/dashboard",  
+    };
+
+    const destination = routes[role];
+    if (destination) {
+      navigate(destination, { replace: true });
+    } else {
+      navigate("/unauthorized", { replace: true });
+    }
+  }, [navigate]);
+
+  // Check if already logged in on mount
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role  = localStorage.getItem("role");
+    if (token && role) {
+      redirectByRole(role);
+    }
+  }, [redirectByRole]);
+
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError('');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-  try {
-    const response = await axios.post(
-      'http://localhost:8080/auth/login',
-      {
+    try {
+      const response = await axios.post("http://localhost:8080/auth/login", {
         username: formData.username,
-        password: formData.password
-      },
-      { withCredentials: true } 
-    );
+        password: formData.password,
+      });
 
-    const user = response.data;
-    console.log('Login success:', user);
+      const { token, username, roles, employeeId } = response.data;
 
-    
-    if (!user.roles) {
-      setError('Login failed: no roles returned from server');
-      return;
+      if (!token || !roles || roles.length === 0) {
+        setError("Invalid server response. Missing token or roles.");
+        return;
+      }
+
+      const primaryRole = roles[0];
+
+      localStorage.setItem("token",      token);
+      localStorage.setItem("username",   username);
+      localStorage.setItem("role",       primaryRole);  // store "ADMIN" not ["ADMIN"]
+      localStorage.setItem("employeeId", employeeId);
+
+      // Redirect AFTER storing — role is now guaranteed to be in localStorage
+      redirectByRole(primaryRole);
+
+    } catch (err) {
+      setError(err.response?.data?.message || "Invalid username or password");
+    } finally {
+      setIsLoading(false);
     }
-
-    
-    switch (user.roles.toLowerCase()) {
-      case 'admin':
-        navigate('/admin/dashboard');
-        break;
-      case 'hr':
-        navigate('/hr/dashboard');
-        break;
-      case 'manager':
-        navigate('/manager/dashboard');
-        break;
-      default:
-        setError('Unknown role');
-    }
-
-    localStorage.setItem('token', user.token);
-    localStorage.setItem('username', user.username);
-
-  } catch (err) {
-    console.error('Login error full:', err);
-    console.error('Login error response:', err.response);
-    setError(err.response?.data?.message || 'Login failed');
-  }
-};
-
-
+  };
 
   return (
     <LoginContainer>
-      {/* Watermark Logos */}
       <Watermark position={{ top: 20, left: 20 }} />
       <Watermark position={{ top: 20, right: 20 }} />
       <Watermark position={{ bottom: 20, left: 20 }} />
@@ -190,7 +194,7 @@ const Login = () => {
                 variant="outlined"
                 margin="normal"
                 placeholder="Username"
-                name="username"  // Fixed: must match formData key
+                name="username"
                 value={formData.username}
                 onChange={handleChange}
                 InputProps={{
@@ -254,7 +258,7 @@ const Login = () => {
                 <FormControlLabel
                   control={
                     <Checkbox
-                      checked={formData.rememberMe}
+                      checked={formData.rememberMe || false}
                       onChange={handleChange}
                       name="rememberMe"
                       color="primary"
@@ -277,6 +281,7 @@ const Login = () => {
                 color="primary"
                 size="large"
                 type="submit"
+                disabled={isLoading}
                 sx={{
                   borderRadius: 12,
                   height: 50,
@@ -287,10 +292,14 @@ const Login = () => {
                   '&:hover': { boxShadow: '0 6px 20px rgba(25, 118, 210, 0.5)' },
                 }}
               >
-                Sign In
+                {isLoading ? "Signing in..." : "Sign In"}
               </Button>
 
-              {error && <Typography color="error" mt={2}>{error}</Typography>}
+              {error && (
+                <Typography color="error" mt={2} textAlign="center">
+                  {error}
+                </Typography>
+              )}
             </form>
           </LoginCard>
         </motion.div>
