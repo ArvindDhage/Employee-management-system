@@ -1,269 +1,225 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Container,
-  IconButton,
-  InputAdornment,
-  MenuItem,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-  Avatar,
-  Tooltip
+  Box, Button, Card, CardContent, Chip, Container, IconButton,
+  InputAdornment, MenuItem, Paper, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, TextField, Typography,
+  Avatar, Tooltip, Stack, CircularProgress, Alert,
 } from '@mui/material';
 import {
-  Search as SearchIcon,
-  Visibility as VisibilityIcon,
-  CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
-  Event as CalendarIcon,
-  ArrowBack as ArrowBackIcon
+  Search as SearchIcon, CheckCircle as ApproveIcon,
+  Cancel as RejectIcon, Event as CalendarIcon,
+  ArrowBack as ArrowBackIcon, PendingActions,
 } from '@mui/icons-material';
 
-// Mock data for the leave requests
-const mockLeaveRequests = [
-  {
-    id: 1,
-    employee: { name: 'John Doe', avatar: 'JD' },
-    leaveType: 'Casual',
-    reason: 'Family function',
-    startDate: '2025-02-15',
-    endDate: '2025-02-17',
-    status: 'Pending'
-  },
-  {
-    id: 2,
-    employee: { name: 'Jane Smith', avatar: 'JS' },
-    leaveType: 'Sick',
-    reason: 'Medical appointment',
-    startDate: '2025-02-10',
-    endDate: '2025-02-10',
-    status: 'Approved'
-  },
-  {
-    id: 3,
-    employee: { name: 'Robert Johnson', avatar: 'RJ' },
-    leaveType: 'Paid',
-    reason: 'Vacation',
-    startDate: '2025-03-01',
-    endDate: '2025-03-10',
-    status: 'Rejected'
-  },
-  {
-    id: 4,
-    employee: { name: 'Emily Davis', avatar: 'ED' },
-    leaveType: 'Casual',
-    reason: 'Personal work',
-    startDate: '2025-02-20',
-    endDate: '2025-02-21',
-    status: 'Pending'
-  }
-];
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
+const getToken = () =>
+  localStorage.getItem("token") || localStorage.getItem("jwtToken") || null;
+const authHeaders = () => {
+  const t = getToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+};
+
+const statusColor = (s) =>
+  s === "APPROVED" ? "success" : s === "REJECTED" ? "error" : "warning";
 
 const TeamLeave = () => {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
+  const [leaves, setLeaves] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [actionLoading, setActionLoading] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
-  // Filter leave requests based on search and status
-  const filteredLeaves = mockLeaveRequests.filter(leave => {
-    const matchesSearch = 
-      leave.employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      leave.reason.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'All' || leave.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+  useEffect(() => { fetchLeaves(); }, []);
+
+  const fetchLeaves = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/manager/pending-leaves`, { headers: authHeaders() });
+      setLeaves(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      setError("Failed to load leave requests.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAction = async (id, status) => {
+  setActionLoading(id + status);
+  try {
+    const endpoint =
+      status === "APPROVED"
+        ? `${API_URL}/api/manager/leave/${id}/approve`
+        : `${API_URL}/api/manager/leave/${id}/reject`;
+
+    await axios.patch(endpoint, {}, { headers: authHeaders() });
+
+    await fetchLeaves();
+  } catch (err) {
+    alert("Action failed: " + (err.response?.data || err.message));
+  } finally {
+    setActionLoading(null);
+  }
+};
+
+  const filtered = leaves.filter((l) => {
+    const name = `${l.employee?.firstName || ""} ${l.employee?.lastName || ""}`.toLowerCase();
+    const matchSearch = name.includes(searchTerm.toLowerCase()) ||
+      (l.reason || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchStatus = statusFilter === "All" || (l.status || "PENDING") === statusFilter;
+    return matchSearch && matchStatus;
   });
 
-  // Handle approve leave
-  const handleApprove = (id) => {
-    console.log(`Approved leave with id: ${id}`);
-    // In a real app, you would update the status via an API call
-  };
-
-  // Handle reject leave
-  const handleReject = (id) => {
-    console.log(`Rejected leave with id: ${id}`);
-    // In a real app, you would update the status via an API call
-  };
-
-  // Get chip color based on leave type
-  const getLeaveTypeColor = (type) => {
-    switch (type) {
-      case 'Casual': return 'primary';
-      case 'Sick': return 'secondary';
-      case 'Paid': return 'success';
-      default: return 'default';
-    }
-  };
-
-  // Get status chip color
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Approved': return 'success';
-      case 'Rejected': return 'error';
-      case 'Pending': return 'warning';
-      default: return 'default';
-    }
+  const counts = {
+    All: leaves.length,
+    PENDING:  leaves.filter(l => !l.status || l.status === "PENDING").length,
+    APPROVED: leaves.filter(l => l.status === "APPROVED").length,
+    REJECTED: leaves.filter(l => l.status === "REJECTED").length,
   };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Page Header */}
+
+      {/* Header */}
       <Box mb={4}>
-         <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/manager/dashboard')}
-          sx={{ mb: 1, textTransform: 'none' }}
-        >
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/manager/dashboard')}
+          sx={{ mb: 1, textTransform: 'none', color: "text.secondary" }}>
           Back to Dashboard
         </Button>
-        <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
-          Team Leaves
-        </Typography>
-        <Typography variant="subtitle1" color="textSecondary">
-          Manage and review all leave requests across your team.
+        <Typography variant="h4" fontWeight={800} color="#0f172a">Team Leaves</Typography>
+        <Typography variant="body2" color="text.secondary" mt={0.5}>
+          Review and manage all leave requests from your team
         </Typography>
       </Box>
 
-      {/* Search & Filter Section */}
-      <Card elevation={2} sx={{ mb: 4, borderRadius: 2 }}>
-        <CardContent>
-          <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
-            <TextField
-              placeholder="Search by employee name or reason..."
-              variant="outlined"
-              size="small"
-              fullWidth
-              sx={{ maxWidth: 500 }}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <TextField
-              select
-              size="small"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              sx={{ minWidth: 150 }}
-            >
-              {['All', 'Pending', 'Approved', 'Rejected'].map((status) => (
-                <MenuItem key={status} value={status}>
-                  {status}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Box>
+      {/* Summary Chips */}
+      <Stack direction="row" spacing={2} mb={3} flexWrap="wrap">
+        {[
+          { label: "All", color: "default" },
+          { label: "PENDING",  color: "warning" },
+          { label: "APPROVED", color: "success" },
+          { label: "REJECTED", color: "error" },
+        ].map(({ label, color }) => (
+          <Chip key={label}
+            label={`${label === "All" ? "All" : label.charAt(0) + label.slice(1).toLowerCase()} (${counts[label] ?? 0})`}
+            color={statusFilter === label ? color : "default"}
+            onClick={() => setStatusFilter(label)}
+            sx={{ fontWeight: 600, cursor: "pointer" }}
+          />
+        ))}
+      </Stack>
+
+      {/* Search */}
+      <Card elevation={0} sx={{ mb: 3, border: "1px solid #e2e8f0", borderRadius: 3 }}>
+        <CardContent sx={{ py: 2 }}>
+          <TextField
+            placeholder="Search by employee name or reason..."
+            size="small" fullWidth sx={{ maxWidth: 420 }}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment>,
+            }}
+          />
         </CardContent>
       </Card>
 
-      {/* Leave Requests Table */}
-      <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: 'action.hover' }}>
-              <TableCell>Employee</TableCell>
-              <TableCell>Leave Type</TableCell>
-              <TableCell>Reason</TableCell>
-              <TableCell>Dates</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredLeaves.map((leave) => (
-              <TableRow 
-                key={leave.id} 
-                hover 
-                sx={{ 
-                  '&:last-child td, &:last-child th': { border: 0 },
-                  '&:hover': { backgroundColor: 'action.hover' }
-                }}
-              >
-                <TableCell>
-                  <Box display="flex" alignItems="center" gap={2}>
-                    <Avatar sx={{ bgcolor: 'primary.main' }}>
-                      {leave.employee.avatar}
-                    </Avatar>
-                    {leave.employee.name}
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Chip 
-                    label={leave.leaveType}
-                    color={getLeaveTypeColor(leave.leaveType)}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>{leave.reason}</TableCell>
-                <TableCell>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <CalendarIcon color="action" fontSize="small" />
-                    {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Chip 
-                    label={leave.status}
-                    color={getStatusColor(leave.status)}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell align="right">
-                  <Box display="flex" gap={1} justifyContent="flex-end">
-                    <Tooltip title="View Details">
-                      <IconButton size="small">
-                        <VisibilityIcon color="info" />
-                      </IconButton>
-                    </Tooltip>
-                    
-                    {leave.status === 'Pending' && (
-                      <>
-                        <Tooltip title="Approve">
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleApprove(leave.id)}
-                            sx={{ color: 'success.main' }}
-                          >
-                            <ApproveIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Reject">
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleReject(leave.id)}
-                            sx={{ color: 'error.main' }}
-                          >
-                            <RejectIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </>
-                    )}
-                  </Box>
-                </TableCell>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      {/* Table */}
+      <Paper elevation={0} sx={{ borderRadius: 3, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+        {loading ? (
+          <Box display="flex" justifyContent="center" py={6}><CircularProgress /></Box>
+        ) : (
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                {["Employee", "Leave Type", "Reason", "Dates", "Status", "Actions"].map((h) => (
+                  <TableCell key={h} sx={{ fontWeight: 700, fontSize: "0.72rem",
+                    textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b" }}>
+                    {h}
+                  </TableCell>
+                ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                    No leave requests found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((leave) => (
+                  <TableRow key={leave.id} hover sx={{ "&:last-child td": { border: 0 } }}>
+                    <TableCell>
+                      <Stack direction="row" alignItems="center" spacing={1.5}>
+                        <Avatar sx={{ width: 34, height: 34, bgcolor: "#3b82f6", fontSize: "0.75rem" }}>
+                          {leave.employee?.firstName?.[0]}{leave.employee?.lastName?.[0]}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>
+                            {leave.employee?.firstName} {leave.employee?.lastName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {leave.employee?.departmentName || ""}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={leave.leaveType || leave.type || "Leave"} size="small"
+                        sx={{ fontWeight: 600, fontSize: "0.72rem" }} />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">{leave.reason || "—"}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <CalendarIcon color="action" fontSize="small" />
+                        <Typography variant="body2">
+                          {leave.startDate} → {leave.endDate}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={leave.status || "PENDING"}
+                        color={statusColor(leave.status || "PENDING")}
+                        size="small" sx={{ fontWeight: 700, fontSize: "0.7rem" }} />
+                    </TableCell>
+                    <TableCell>
+                      {(!leave.status || leave.status === "PENDING") && (
+                        <Stack direction="row" spacing={0.5}>
+                          <Tooltip title="Approve">
+                            <IconButton size="small" color="success"
+                              disabled={!!actionLoading}
+                              onClick={() => handleAction(leave.id, "APPROVED")}>
+                              {actionLoading === leave.id + "APPROVED"
+                                ? <CircularProgress size={16} /> : <ApproveIcon fontSize="small" />}
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Reject">
+                            <IconButton size="small" color="error"
+                              disabled={!!actionLoading}
+                              onClick={() => handleAction(leave.id, "REJECTED")}>
+                              {actionLoading === leave.id + "REJECTED"
+                                ? <CircularProgress size={16} /> : <RejectIcon fontSize="small" />}
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </Paper>
     </Container>
   );
 };
