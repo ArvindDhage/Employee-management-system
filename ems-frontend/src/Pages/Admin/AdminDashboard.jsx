@@ -1,651 +1,395 @@
-import React from 'react';
-import { 
-  Search as SearchIcon,
-  Notifications as NotificationsIcon,
-  ArrowUpward as ArrowUpwardIcon,
-  People as PeopleIcon,
-  SupervisorAccount as SupervisorAccountIcon,
-  Person as PersonIcon,
-  Groups as GroupsIcon,
-  CheckCircle as CheckCircleIcon,
-  Pending as PendingIcon,
-  Assignment as AssignmentIcon,
-  Warning as WarningIcon
-} from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
-  Box,
-  Typography,
-  TextField,
-  InputAdornment,
-  IconButton,
-  Avatar,
-  Card,
-  CardContent,
-  Grid,
-  useTheme,
-  Paper
+  Box, Typography, Card, CardContent, Grid, Paper, Button,
+  Chip, Avatar, Stack, Divider, CircularProgress, Alert,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  IconButton, LinearProgress,
 } from '@mui/material';
 import {
-  PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, 
-  CartesianGrid, Tooltip, Legend, ResponsiveContainer
-} from 'recharts';
+  People as PeopleIcon, CheckCircle as CheckCircleIcon,
+  Pending as PendingIcon, Cancel as CancelIcon,
+  Check, Close, Refresh, Campaign, Business,
+  TrendingUp, AssignmentTurnedIn,
+} from '@mui/icons-material';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
-const drawerWidth = 240;
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const getToken = () => localStorage.getItem('token') || localStorage.getItem('jwtToken') || null;
+const authHeaders = () => { const t = getToken(); return t ? { Authorization: `Bearer ${t}` } : {}; };
 
-// Mock data
-const statsData = [
-  { 
-    title: 'Total Employees', 
-    value: '1,254', 
-    change: 12.5,
-    icon: <PeopleIcon color="primary" fontSize="large" />
-  },
-  { 
-    title: 'Total Managers', 
-    value: '84', 
-    change: 8.2,
-    icon: <SupervisorAccountIcon color="secondary" fontSize="large" />
-  },
-  { 
-    title: 'Total HR', 
-    value: '32', 
-    change: 5.7,
-    icon: <PersonIcon color="success" fontSize="large" />
-  },
-  { 
-    title: 'Total Teams', 
-    value: '18', 
-    change: 3.2,
-    icon: <GroupsIcon color="warning" fontSize="large" />
-  }
-];
+const PIE_COLORS = ['#10b981', '#f59e0b', '#ef4444'];
 
-// Chart Data
-const employeeData = [
-  { name: 'Engineering', value: 37, color: '#0088FE' },
-  { name: 'Sales', value: 23, color: '#00C49F' },
-  { name: 'Marketing', value: 17, color: '#FFBB28' },
-  { name: 'Finance', value: 14, color: '#FF8042' },
-  { name: 'HR', value: 9, color: '#8884D8' }
-];
-
-const attendanceData = [
-  { name: 'Mon', present: 400, absent: 100 },
-  { name: 'Tue', present: 380, absent: 120 },
-  { name: 'Wed', present: 420, absent: 80 },
-  { name: 'Thu', present: 400, absent: 100 },
-  { name: 'Fri', present: 390, absent: 110 }
-];
-
-const taskData = [
-  { name: 'Completed', value: 156, color: '#4CAF50' },
-  { name: 'In Progress', value: 89, color: '#2196F3' },
-  { name: 'Assigned', value: 45, color: '#FFC107' },
-  { name: 'Pending', value: 23, color: '#F44336' }
-];
-
-const managerProgressData = [
-  { name: 'Jan', assigned: 65, completed: 40 },
-  { name: 'Feb', assigned: 59, completed: 48 },
-  { name: 'Mar', assigned: 80, completed: 60 },
-  { name: 'Apr', assigned: 81, completed: 65 },
-  { name: 'May', assigned: 56, completed: 45 },
-  { name: 'Jun', assigned: 75, completed: 60 },
-];
-
-const hrProgressData = [
-  { name: 'Jan', activities: 40 },
-  { name: 'Feb', activities: 30 },
-  { name: 'Mar', activities: 60 },
-  { name: 'Apr', activities: 50 },
-  { name: 'May', activities: 35 },
-  { name: 'Jun', activities: 55 },
-];
-
-const systemOverview = [
-  { 
-    title: 'Active Users', 
-    value: '412', 
-    icon: <PeopleIcon color="primary" />,
-    color: 'primary.light'
-  },
-  { 
-    title: 'Pending Leaves', 
-    value: '23', 
-    icon: <PendingIcon color="warning" />,
-    color: 'warning.light'
-  },
-  { 
-    title: 'Ongoing Tasks', 
-    value: '89', 
-    icon: <AssignmentIcon color="info" />,
-    color: 'info.light'
-  },
-  { 
-    title: 'System Health', 
-    value: 'Good', 
-    icon: <CheckCircleIcon color="success" />,
-    color: 'success.light'
-  }
-];
+// ── Stat Card ──────────────────────────────────────────────────────────────
+const StatCard = ({ title, value, icon: Icon, color, bg, subtitle }) => (
+  <Card elevation={0} sx={{
+    borderRadius: 3, border: '1px solid #e2e8f0',
+    '&:hover': { boxShadow: '0 4px 20px rgba(0,0,0,0.07)', transform: 'translateY(-2px)' },
+    transition: '0.2s',
+  }}>
+    <CardContent sx={{ p: 3 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+        <Box>
+          <Typography variant="body2" color="text.secondary" fontWeight={500} mb={0.5}>{title}</Typography>
+          <Typography variant="h4" fontWeight={800} color={color}>{value}</Typography>
+          {subtitle && <Typography variant="caption" color="text.secondary">{subtitle}</Typography>}
+        </Box>
+        <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: bg,
+          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon sx={{ color, fontSize: 24 }} />
+        </Box>
+      </Stack>
+    </CardContent>
+  </Card>
+);
 
 const AdminDashboard = () => {
-  const theme = useTheme();
+  const [stats,         setStats]         = useState({});
+  const [employees,     setEmployees]     = useState([]);
+  const [leaves,        setLeaves]        = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState(null);
+  const [actionLoading, setActionLoading] = useState(null);
 
-  const RADIAN = Math.PI / 180;
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 1.3;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  // FIX: read username from localStorage consistently
+  const username = localStorage.getItem('username') || 'Admin';
 
-    return (
-      <text 
-        x={x} 
-        y={y} 
-        fill={employeeData[index].color} 
-        textAnchor={x > cx ? 'start' : 'end'} 
-        dominantBaseline="central"
-        style={{ fontSize: '12px', fontWeight: 500 }}
-      >
-        {`${employeeData[index].name} ${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
+  useEffect(() => { fetchAll(); }, []);
+
+  const fetchAll = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [statsRes, empRes, leaveRes, announceRes] = await Promise.all([
+        axios.get(`${API_URL}/api/admin/stats`,           { headers: authHeaders() }),
+        axios.get(`${API_URL}/api/admin/employees`,       { headers: authHeaders() }),
+        axios.get(`${API_URL}/api/admin/leaves/pending`,  { headers: authHeaders() }),
+        axios.get(`${API_URL}/api/admin/announcements`,   { headers: authHeaders() })
+             .catch(() => ({ data: [] })),
+      ]);
+      setStats(statsRes.data || {});
+      setEmployees(Array.isArray(empRes.data)      ? empRes.data      : []);
+      setLeaves(Array.isArray(leaveRes.data)        ? leaveRes.data    : []);
+      setAnnouncements(Array.isArray(announceRes.data) ? announceRes.data : []);
+    } catch (err) {
+      setError('Failed to load dashboard data. Please check your connection.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        bgcolor: '#f5f7fb'
-      }}
-    >
-      {/* Top Header */}
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          flexDirection: { xs: 'column', md: 'row' },
-          justifyContent: 'space-between', 
-          alignItems: { xs: 'stretch', md: 'center' },
-          mb: 4,
-          gap: 2
-        }}
-      >
-        <Box>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Dashboard
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Welcome back, Admin! Here's your overview
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 2, width: { xs: '100%', md: 'auto' } }}>
-          <TextField
-            placeholder="Search employee / task / department"
-            variant="outlined"
-            size="small"
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="action" />
-                </InputAdornment>
-              ),
-              sx: { 
-                borderRadius: 2,
-                backgroundColor: 'background.paper'
-              }
-            }}
-          />
-          <IconButton sx={{ bgcolor: 'background.paper' }}>
-            <Box sx={{ position: 'relative' }}>
-              <NotificationsIcon />
-              <Box 
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 0,
-                  width: 10,
-                  height: 10,
-                  backgroundColor: 'error.main',
-                  borderRadius: '50%'
-                }} 
-              />
-            </Box>
-          </IconButton>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1.5,
-            bgcolor: 'background.paper',
-            px: 2,
-            borderRadius: 2
-          }}>
-            <Avatar 
-              alt="Admin User" 
-              sx={{ 
-                width: 36, 
-                height: 36, 
-                bgcolor: 'primary.main',
-                color: 'white',
-                fontSize: 14,
-                fontWeight: 600
-              }}
-            >
-              AU
-            </Avatar>
-            <Box>
-              <Typography variant="subtitle2" fontWeight="medium">
-                Admin User
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                admin@ems.com
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-      </Box>
+  const handleLeaveAction = async (id, action) => {
+    setActionLoading(id + action);
+    try {
+      await axios.patch(
+        `${API_URL}/api/admin/leaves/${id}/${action}`,
+        {},
+        { headers: authHeaders() }
+      );
+      await fetchAll();
+    } catch (err) {
+      alert('Action failed: ' + (err.response?.data?.error || err.response?.data || err.message));
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {statsData.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <Card 
-              elevation={0}
-              sx={{ 
-                height: '100%',
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: theme.shadows[4]
-                }
-              }}
-            >
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <Box>
-                    <Typography 
-                      variant="subtitle2" 
-                      color="text.secondary" 
-                      gutterBottom
-                    >
-                      {stat.title}
-                    </Typography>
-                    <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>
-                      {stat.value}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <ArrowUpwardIcon 
-                        color="success" 
-                        fontSize="small" 
-                        sx={{ mr: 0.5, fontSize: 16 }} 
-                      />
-                      <Typography variant="caption" color="success.main" fontWeight={500}>
-                        +{stat.change}% from last month
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Box 
-                    sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 48,
-                      height: 48,
-                      borderRadius: 2,
-                      bgcolor: 'primary.lighter',
-                      color: 'primary.main'
-                    }}
-                  >
-                    {stat.icon}
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+  if (loading) {
+    return (
+      <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="60vh" gap={2}>
+        <CircularProgress size={40} />
+        <Typography color="text.secondary" variant="body2">Loading dashboard…</Typography>
+      </Box>
+    );
+  }
+
+  const statsConfig = [
+    { title: 'Total Employees', value: stats.totalEmployees  ?? 0, icon: PeopleIcon,       color: '#3b82f6', bg: '#eff6ff', subtitle: `${employees.filter(e => e.active !== false).length} active` },
+    { title: 'Pending Leaves',  value: stats.pendingLeaves   ?? 0, icon: PendingIcon,       color: '#f59e0b', bg: '#fffbeb', subtitle: 'Awaiting action' },
+    { title: 'Approved Leaves', value: stats.approvedLeaves  ?? 0, icon: CheckCircleIcon,   color: '#10b981', bg: '#ecfdf5', subtitle: 'This cycle' },
+    { title: 'Rejected Leaves', value: stats.rejectedLeaves  ?? 0, icon: CancelIcon,        color: '#ef4444', bg: '#fef2f2', subtitle: 'This cycle' },
+    { title: 'Departments',     value: stats.totalDepartments ?? 0, icon: Business,          color: '#8b5cf6', bg: '#f5f3ff', subtitle: 'Total teams' },
+    { title: 'Total Leaves',    value: stats.totalLeaves     ?? 0, icon: AssignmentTurnedIn, color: '#06b6d4', bg: '#ecfeff', subtitle: 'All requests' },
+  ];
+
+  const pieData = [
+    { name: 'Approved', value: stats.approvedLeaves ?? 0 },
+    { name: 'Pending',  value: stats.pendingLeaves  ?? 0 },
+    { name: 'Rejected', value: stats.rejectedLeaves ?? 0 },
+  ];
+
+  const publishedAnnouncements = announcements.filter(a => a.status === 'PUBLISHED');
+
+  const priorityColor = p => ({ HIGH: 'error', MEDIUM: 'warning', LOW: 'success' }[p] || 'default');
+
+  console.log(authHeaders());
+  return (
+    <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: '#f8fafc', minHeight: '100vh' }}>
+
+      {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+
+      {/* ── Header ── */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
+        <Box>
+          <Typography variant="h4" fontWeight={800} color="#0f172a">Admin Dashboard</Typography>
+          <Typography variant="body2" color="text.secondary" mt={0.5}>
+            Welcome back, <strong>{username}</strong> · {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <IconButton onClick={fetchAll} sx={{ bgcolor: 'white', border: '1px solid #e2e8f0' }}>
+            <Refresh fontSize="small" />
+          </IconButton>
+          <Avatar sx={{ bgcolor: '#3b82f6', fontWeight: 700, width: 40, height: 40 }}>
+            {username[0]?.toUpperCase()}
+          </Avatar>
+        </Stack>
+      </Stack>
+
+      {/* ── Stats (2 rows × 3) ── */}
+      <Grid container spacing={2} mb={4}>
+        {statsConfig.map(s => (
+          <Grid item xs={12} sm={6} md={4} key={s.title}>
+            <StatCard {...s} />
           </Grid>
         ))}
       </Grid>
 
-      {/* Progress Charts Section */}
-      <Grid container spacing={30} sx={{ mb: 4 }}>
-        {/* Manager Progress */}
-        <Grid item xs={12} md={8}>
-          <Card 
-            elevation={0}
-            sx={{ 
-              width: '250%',
-              maxWidth: 550,
-              height: '100%',
-              borderRadius: 3,
-              border: '1px solid',
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
-              p: 3
-            }}
-          >
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Manager Progress
-            </Typography>
-            <Box sx={{ height: 300, mt: 2 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={managerProgressData}
-                  margin={{
-                    top: 5,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip 
-                    contentStyle={{ 
-                      borderRadius: 8,
-                      border: 'none',
-                      boxShadow: theme.shadows[3]
-                    }}
-                  />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="assigned" 
-                    name="Tasks Assigned" 
-                    stroke="#2196F3" 
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="completed" 
-                    name="Tasks Completed" 
-                    stroke="#4CAF50" 
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </Box>
-          </Card>
-        </Grid>
+      <Grid container spacing={3} mb={3}>
 
-        {/* HR Progress */}
-        <Grid item xs={12} md={8}>
-          <Card 
-            elevation={0}
-            sx={{ 
-              width: '335%',
-              maxWidth: 600,
-              height: '100%',
-              borderRadius: 3,
-              border: '1px solid',
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
-              p: 3
-            }}
-          >
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              HR Progress
-            </Typography>
-            <Box sx={{ height: 300, mt: 2 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={hrProgressData}
-                  margin={{
-                    top: 5,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip 
-                    contentStyle={{ 
-                      borderRadius: 8,
-                      border: 'none',
-                      boxShadow: theme.shadows[3]
-                    }}
-                  />
-                  <Legend />
-                  <Bar 
-                    dataKey="activities" 
-                    name="HR Activities" 
-                    fill="#9C27B0" 
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+        {/* ── Employee Table ── */}
+        <Grid item xs={12} lg={8}>
+          <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
+            <Box sx={{ p: 3, borderBottom: '1px solid #f1f5f9' }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Box>
+                  <Typography variant="h6" fontWeight={700}>Active Workforce</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Showing top 8 of {employees.length} employees
+                  </Typography>
+                </Box>
+                <Chip label={`${employees.filter(e => e.active !== false).length} Active`}
+                  color="success" size="small" variant="outlined" />
+              </Stack>
             </Box>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Charts Section */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Employee Distribution */}
-        <Grid item xs={12} md={6}>
-          <Card 
-            elevation={0}
-            sx={{ 
-              height: '100%',
-              borderRadius: 3,
-              border: '1px solid',
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
-              p: 3
-            }}
-          >
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Employee Distribution
-            </Typography>
-            <Box sx={{ height: 300, mt: 2 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={employeeData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={renderCustomizedLabel}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {employeeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: '#f8fafc' }}>
+                    {['Employee', 'Department', 'Role', 'Salary', 'Status'].map(h => (
+                      <TableCell key={h} sx={{ fontWeight: 700, fontSize: '0.72rem',
+                        textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>{h}</TableCell>
                     ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value) => [`${value} employees`, '']}
-                    contentStyle={{ 
-                      borderRadius: 8,
-                      border: 'none',
-                      boxShadow: theme.shadows[3]
-                    }}
-                  />
-                  <Legend 
-                    layout="horizontal"
-                    verticalAlign="bottom"
-                    align="center"
-                    wrapperStyle={{ paddingTop: 20 }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </Box>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {employees.slice(0, 8).map(emp => (
+                    <TableRow key={emp.id} hover sx={{ '&:last-child td': { border: 0 }, opacity: emp.active !== false ? 1 : 0.5 }}>
+                      <TableCell>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                          <Avatar sx={{ width: 32, height: 32, bgcolor: '#3b82f6', fontSize: '0.72rem', fontWeight: 700 }}>
+                            {emp.firstName?.[0]}{emp.lastName?.[0]}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2" fontWeight={600}>{emp.firstName} {emp.lastName}</Typography>
+                            <Typography variant="caption" color="text.secondary">{emp.empCode}</Typography>
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {/* FIX: backend Employee entity returns department object, not departmentName directly */}
+                          {emp.department?.name || emp.departmentName || '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip label={emp.user?.roles?.[0]?.name || emp.roleName || 'EMPLOYEE'}
+                          size="small" variant="outlined" sx={{ fontSize: '0.7rem', fontWeight: 600 }} />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600} color="#10b981">
+                          {emp.salary ? `₹${Number(emp.salary).toLocaleString('en-IN')}` : '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={emp.active !== false ? 'Active' : 'Inactive'}
+                          color={emp.active !== false ? 'success' : 'error'}
+                          size="small" sx={{ fontSize: '0.7rem', fontWeight: 700 }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Card>
         </Grid>
 
-        {/* Monthly Attendance */}
-        <Grid item xs={12} md={6}>
-          <Card 
-            elevation={0}
-            sx={{ 
-              height: '100%',
-              borderRadius: 3,
-              border: '1px solid',
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
-              p: 3
-            }}
-          >
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Monthly Attendance
-            </Typography>
-            <Box sx={{ height: 300, mt: 2 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={attendanceData}
-                  margin={{
-                    top: 5,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip 
-                    contentStyle={{ 
-                      borderRadius: 8,
-                      border: 'none',
-                      boxShadow: theme.shadows[3]
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="present" name="Present" fill="#4CAF50" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="absent" name="Absent" fill="#F44336" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+        {/* ── Leave Pie Chart ── */}
+        <Grid item xs={12} lg={4}>
+          <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', height: '100%' }}>
+            <Box sx={{ p: 3, borderBottom: '1px solid #f1f5f9' }}>
+              <Typography variant="h6" fontWeight={700}>Leave Overview</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {stats.totalLeaves ?? 0} total requests
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2 }}>
+              {pieData.every(d => d.value === 0) ? (
+                <Box textAlign="center" py={6}>
+                  <AssignmentTurnedIn sx={{ fontSize: 48, color: '#cbd5e1', mb: 1 }} />
+                  <Typography color="text.secondary" variant="body2">No leave data yet</Typography>
+                </Box>
+              ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                  <PieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} innerRadius={40}
+                      dataKey="value" paddingAngle={3}>
+                      {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i]} />)}
+                    </Pie>
+                    <Tooltip formatter={(v, n) => [`${v} requests`, n]} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </Box>
           </Card>
         </Grid>
       </Grid>
 
-      {/* Second Row of Charts */}
       <Grid container spacing={3}>
-        {/* Task Assignment Overview */}
-        <Grid item xs={12} md={7}>
-          <Card 
-            elevation={0}
-            sx={{ 
-              height: '100%',
-              borderRadius: 3,
-              border: '1px solid',
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
-              p: 3
-            }}
-          >
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Task Assignment Overview
-            </Typography>
-            <Box sx={{ height: 300, mt: 2, position: 'relative' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={taskData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                    label={({ name, percent }) => 
-                      `${name}: ${(percent * 100).toFixed(0)}%`
-                    }
-                    labelLine={false}
-                  >
-                    {taskData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value) => [`${value} tasks`, '']}
-                    contentStyle={{ 
-                      borderRadius: 8,
-                      border: 'none',
-                      boxShadow: theme.shadows[3]
-                    }}
-                  />
-                  <Legend 
-                    layout="horizontal"
-                    verticalAlign="bottom"
-                    align="center"
-                    wrapperStyle={{ paddingTop: 20 }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+
+        {/* ── Pending Leave Approvals ── */}
+        <Grid item xs={12} lg={7}>
+          <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
+            <Box sx={{ p: 3, borderBottom: '1px solid #f1f5f9' }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Box>
+                  <Typography variant="h6" fontWeight={700}>Pending Leave Approvals</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {leaves.length} request{leaves.length !== 1 ? 's' : ''} awaiting action
+                  </Typography>
+                </Box>
+                <Chip label={`${leaves.length} Pending`}
+                  color={leaves.length > 0 ? 'warning' : 'default'} size="small" />
+              </Stack>
+            </Box>
+            <Box sx={{ p: 2, maxHeight: 380, overflowY: 'auto' }}>
+              {leaves.length === 0 ? (
+                <Box textAlign="center" py={5}>
+                  <CheckCircleIcon sx={{ fontSize: 44, color: '#10b981', mb: 1 }} />
+                  <Typography color="text.secondary" fontWeight={600}>All caught up!</Typography>
+                  <Typography variant="body2" color="text.secondary">No pending requests.</Typography>
+                </Box>
+              ) : (
+                <Stack spacing={1.5}>
+                  {leaves.map(leave => {
+                    const days = leave.startDate && leave.endDate
+                      ? Math.max(1, Math.round((new Date(leave.endDate) - new Date(leave.startDate)) / 86400000) + 1)
+                      : null;
+                    return (
+                      <Box key={leave.id} sx={{
+                        p: 2, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#fafafa',
+                        '&:hover': { bgcolor: '#f1f5f9' }, transition: '0.15s',
+                      }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                          <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                            <Avatar sx={{ width: 36, height: 36, bgcolor: '#3b82f6', fontSize: '0.75rem', mt: 0.2 }}>
+                              {leave.employee?.firstName?.[0]}{leave.employee?.lastName?.[0]}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="body2" fontWeight={700}>
+                                {leave.employee?.firstName} {leave.employee?.lastName}
+                              </Typography>
+                              <Stack direction="row" spacing={1} mt={0.3} flexWrap="wrap">
+                                <Chip label={leave.leaveType || 'Leave'} size="small" sx={{ fontSize: '0.65rem', height: 18 }} />
+                                {days && <Chip label={`${days} day${days > 1 ? 's' : ''}`} size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 18 }} />}
+                              </Stack>
+                              <Typography variant="caption" color="text.secondary" display="block" mt={0.3}>
+                                {leave.startDate} → {leave.endDate}
+                              </Typography>
+                              {leave.reason && (
+                                <Typography variant="caption" color="text.secondary" display="block"
+                                  sx={{ mt: 0.2, fontStyle: 'italic', maxWidth: 280, overflow: 'hidden',
+                                    textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  "{leave.reason}"
+                                </Typography>
+                              )}
+                            </Box>
+                          </Stack>
+                          <Stack direction="row" spacing={0.5}>
+                            <Button size="small" variant="contained" color="success"
+                              startIcon={actionLoading === leave.id + 'approve'
+                                ? <CircularProgress size={12} color="inherit" /> : <Check />}
+                              disabled={!!actionLoading}
+                              onClick={() => handleLeaveAction(leave.id, 'approve')}
+                              sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: '0.72rem', minWidth: 80 }}>
+                              Approve
+                            </Button>
+                            <Button size="small" variant="outlined" color="error"
+                              startIcon={actionLoading === leave.id + 'reject'
+                                ? <CircularProgress size={12} color="inherit" /> : <Close />}
+                              disabled={!!actionLoading}
+                              onClick={() => handleLeaveAction(leave.id, 'reject')}
+                              sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: '0.72rem', minWidth: 72 }}>
+                              Reject
+                            </Button>
+                          </Stack>
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              )}
             </Box>
           </Card>
         </Grid>
 
-        {/* System Overview */}
-        <Grid item xs={12} md={5}>
-          <Card 
-            elevation={0}
-            sx={{ 
-              height: '100%',
-              borderRadius: 3,
-              border: '1px solid',
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
-              p: 3
-            }}
-          >
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              System Overview
-            </Typography>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              {systemOverview.map((item, index) => (
-                <Grid item xs={12} key={index}>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      bgcolor: item.color + '20', // Add opacity to the color
-                      border: '1px solid',
-                      borderColor: item.color + '40'
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 40,
-                        height: 40,
-                        borderRadius: '50%',
-                        bgcolor: item.color + '30',
-                        mr: 2,
-                        color: item.color
-                      }}
-                    >
-                      {item.icon}
-                    </Box>
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        {item.title}
+        {/* ── Recent Announcements ── */}
+        <Grid item xs={12} lg={5}>
+          <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
+            <Box sx={{ p: 3, borderBottom: '1px solid #f1f5f9' }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6" fontWeight={700}>Announcements</Typography>
+                <Chip label={`${publishedAnnouncements.length} Published`}
+                  color="success" size="small" variant="outlined" />
+              </Stack>
+            </Box>
+            <Box sx={{ p: 2, maxHeight: 380, overflowY: 'auto' }}>
+              {publishedAnnouncements.length === 0 ? (
+                <Box textAlign="center" py={5}>
+                  <Campaign sx={{ fontSize: 44, color: '#cbd5e1', mb: 1 }} />
+                  <Typography color="text.secondary" fontWeight={600}>No announcements</Typography>
+                  <Typography variant="body2" color="text.secondary">Create one from Announcements tab</Typography>
+                </Box>
+              ) : (
+                <Stack spacing={1.5}>
+                  {publishedAnnouncements.slice(0, 5).map(ann => (
+                    <Box key={ann.id} sx={{
+                      p: 2, borderRadius: 2,
+                      border: `1px solid ${ann.priority === 'HIGH' ? '#fecaca' : '#e2e8f0'}`,
+                      bgcolor: ann.priority === 'HIGH' ? '#fef2f2' : '#fafafa',
+                    }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={0.5}>
+                        <Typography variant="body2" fontWeight={700} sx={{ flex: 1, mr: 1 }}>{ann.title}</Typography>
+                        <Chip label={ann.priority || 'MEDIUM'} size="small"
+                          color={priorityColor(ann.priority)}
+                          sx={{ fontSize: '0.62rem', height: 18, fontWeight: 700, flexShrink: 0 }} />
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+                        {ann.content?.slice(0, 90)}{ann.content?.length > 90 ? '…' : ''}
                       </Typography>
-                      <Typography variant="h6" fontWeight={600}>
-                        {item.value}
-                      </Typography>
+                      <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                        <Chip label={ann.audience || 'ALL'} size="small" variant="outlined" sx={{ fontSize: '0.62rem', height: 16 }} />
+                        <Chip label={ann.type || 'GENERAL'} size="small" sx={{ fontSize: '0.62rem', height: 16, bgcolor: '#f1f5f9' }} />
+                      </Stack>
                     </Box>
-                  </Paper>
-                </Grid>
-              ))}
-            </Grid>
+                  ))}
+                </Stack>
+              )}
+            </Box>
           </Card>
         </Grid>
       </Grid>
